@@ -174,13 +174,16 @@ public class ESP8266FS implements Tool {
     String esptoolCmd = platform.getTool("esptool").get("cmd");
     File esptool;
     esptool = new File(platform.getFolder()+"/tools", esptoolCmd);
-    if(!esptool.exists()){
+    if(!esptool.exists() || !esptool.isFile()){
+      esptool = new File(platform.getFolder()+"/tools/esptool", esptoolCmd);
+      if(!esptool.exists()){
         esptool = new File(PreferencesData.get("runtime.tools.esptool.path"), esptoolCmd);
         if (!esptool.exists()) {
             System.err.println();
             editor.statusError("SPIFFS Error: esptool not found!");
             return;
         }
+      }
     }
     String mkspiffsCmd;
     if(PreferencesData.get("runtime.os").contentEquals("windows"))
@@ -189,13 +192,16 @@ public class ESP8266FS implements Tool {
         mkspiffsCmd = "mkspiffs";
 
     File tool = new File(platform.getFolder() + "/tools", mkspiffsCmd);
-    if (!tool.exists()) {
+    if (!tool.exists() || !tool.isFile()) {
+      tool = new File(platform.getFolder() + "/tools/mkspiffs", mkspiffsCmd);
+      if (!tool.exists()) {
         tool = new File(PreferencesData.get("runtime.tools.mkspiffs.path"), mkspiffsCmd);
         if (!tool.exists()) {
             System.err.println();
             editor.statusError("SPIFFS Error: mkspiffs not found!");
             return;
         }
+      }
     }
 
     int fileCount = 0;
