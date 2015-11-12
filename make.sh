@@ -7,6 +7,7 @@ echo "INSTALLDIR: $INSTALLDIR"
 
 pde_path=`find ../../.. -name pde.jar`
 core_path=`find ../../.. -name arduino-core.jar`
+lib_path=`find ../../.. -name commons-codec-1.7.jar`
 if [[ -z "$core_path" || -z "$pde_path" ]]; then
     echo "Some java libraries have not been built yet (did you run ant build?)"
     return 1
@@ -15,7 +16,7 @@ fi
 set -e
 
 mkdir -p bin
-javac -target 1.8 -cp "$pde_path:$core_path" \
+javac -target 1.8 -cp "$pde_path:$core_path:$lib_path" \
       -d bin src/ESP8266FS.java
 
 pushd bin

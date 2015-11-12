@@ -26,10 +26,12 @@ package com.esp8266.mkspiffs;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.IOException;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import javax.swing.JOptionPane;
 
 import processing.app.PreferencesData;
@@ -38,10 +40,15 @@ import processing.app.Base;
 import processing.app.BaseNoGui;
 import processing.app.Platform;
 import processing.app.Sketch;
+import processing.app.SketchData;
 import processing.app.tools.Tool;
 import processing.app.helpers.ProcessUtils;
 import processing.app.debug.TargetPlatform;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import processing.app.helpers.FileUtils;
+
+import cc.arduino.files.DeleteFilesOnShutdown;
 
 /**
  * Example Tools menu entry.
@@ -99,6 +106,36 @@ public class ESP8266FS implements Tool {
     thread.start();
   }
 
+  private String getBuildFolderPath(Sketch s) {
+    try {
+      File buildFolder = FileUtils.createTempFolder("build", DigestUtils.md5Hex(s.getMainFilePath()) + ".spiffs");
+      DeleteFilesOnShutdown.add(buildFolder);
+      return buildFolder.getAbsolutePath();
+    }
+    catch (IOException e) {
+      editor.statusError(e);
+    }
+    catch (NoSuchMethodError e) {
+      // Arduino 1.6.5 doesn't have FileUtils.createTempFolder
+      // String buildPath = BaseNoGui.getBuildFolder().getAbsolutePath();
+      java.lang.reflect.Method method;
+      try {
+        method = BaseNoGui.class.getMethod("getBuildFolder");
+        File f = (File) method.invoke(null);
+        return f.getAbsolutePath();
+      } catch (SecurityException ex) {
+        editor.statusError(ex);
+      } catch (IllegalAccessException ex) {
+        editor.statusError(ex);
+      } catch (InvocationTargetException ex) {
+        editor.statusError(ex);
+      } catch (NoSuchMethodException ex) {
+        editor.statusError(ex);
+      }
+    }
+    return "";
+  }
+
 
   private long getIntPref(String name){
     String data = BaseNoGui.getBoardPreferences().get(name);
@@ -150,7 +187,7 @@ public class ESP8266FS implements Tool {
         mkspiffsCmd = "mkspiffs.exe";
     else
         mkspiffsCmd = "mkspiffs";
-    
+
     File tool = new File(platform.getFolder() + "/tools", mkspiffsCmd);
     if (!tool.exists()) {
         tool = new File(PreferencesData.get("runtime.tools.mkspiffs.path"), mkspiffsCmd);
@@ -162,7 +199,10 @@ public class ESP8266FS implements Tool {
     }
 
     int fileCount = 0;
-    File dataFolder = editor.getSketch().prepareDataFolder();
+    File dataFolder = new File(editor.getSketch().getFolder(), "data");
+    if (!dataFolder.exists()) {
+        dataFolder.mkdirs();
+    }
     if(dataFolder.exists() && dataFolder.isDirectory()){
       File[] files = dataFolder.listFiles();
       if(files.length > 0){
@@ -176,8 +216,7 @@ public class ESP8266FS implements Tool {
     String toolPath = tool.getAbsolutePath();
     String esptoolPath = esptool.getAbsolutePath();
     String sketchName = editor.getSketch().getName();
-    String buildPath = BaseNoGui.getBuildFolder().getAbsolutePath();
-    String imagePath = buildPath+"/"+sketchName+".spiffs.bin";
+    String imagePath = getBuildFolderPath(editor.getSketch()) + "/" + sketchName + ".spiffs.bin";
     String serialPort = PreferencesData.get("serial.port");
     String resetMethod = BaseNoGui.getBoardPreferences().get("upload.resetmethod");
     String uploadSpeed = BaseNoGui.getBoardPreferences().get("upload.speed");
