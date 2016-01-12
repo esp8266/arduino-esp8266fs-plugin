@@ -77,6 +77,11 @@ public class ESP8266FS implements Tool {
               while ((c = reader.read()) != -1)
                   System.out.print((char) c);
               reader.close();
+              
+              reader = new InputStreamReader(p.getErrorStream());
+              while ((c = reader.read()) != -1)
+                  System.err.print((char) c);
+              reader.close();
             } catch (Exception e){}
           }
         };
@@ -145,7 +150,7 @@ public class ESP8266FS implements Tool {
   }
 
   private void createAndUpload(){
-    if(!PreferencesData.get("target_platform").contentEquals("esp8266")){
+    if(!PreferencesData.get("target_platform").contentEquals("esp8266") && !PreferencesData.get("target_platform").contentEquals("esp31b") && !PreferencesData.get("target_platform").contentEquals("ESP31B")){
       System.err.println();
       editor.statusError("SPIFFS Not Supported on "+PreferencesData.get("target_platform"));
       return;
@@ -170,21 +175,8 @@ public class ESP8266FS implements Tool {
     }
 
     TargetPlatform platform = BaseNoGui.getTargetPlatform();
-
-    String esptoolCmd = platform.getTool("esptool").get("cmd");
-    File esptool;
-    esptool = new File(platform.getFolder()+"/tools", esptoolCmd);
-    if(!esptool.exists() || !esptool.isFile()){
-      esptool = new File(platform.getFolder()+"/tools/esptool", esptoolCmd);
-      if(!esptool.exists()){
-        esptool = new File(PreferencesData.get("runtime.tools.esptool.path"), esptoolCmd);
-        if (!esptool.exists()) {
-            System.err.println();
-            editor.statusError("SPIFFS Error: esptool not found!");
-            return;
-        }
-      }
-    }
+    
+    //Make sure mkspiffs binary exists
     String mkspiffsCmd;
     if(PreferencesData.get("runtime.os").contentEquals("windows"))
         mkspiffsCmd = "mkspiffs.exe";
@@ -203,7 +195,46 @@ public class ESP8266FS implements Tool {
         }
       }
     }
+    
+    Boolean isNetwork = false;
+    File espota = new File(platform.getFolder()+"/tools");
+    File esptool = new File(platform.getFolder()+"/tools");
+    String serialPort = PreferencesData.get("serial.port");
+    
+    //make sure the serial port or IP is defined
+    if (serialPort == null || serialPort.isEmpty()) {
+      System.err.println();
+      editor.statusError("SPIFFS Error: serial port not defined!");
+      return;
+    }
 
+    //find espota if IP else find esptool
+    if(serialPort.split("\\.").length == 4){
+      isNetwork = true;
+      String espotaCmd = "espota.py";
+      espota = new File(platform.getFolder()+"/tools", espotaCmd);
+      if(!espota.exists() || !espota.isFile()){
+        System.err.println();
+        editor.statusError("SPIFFS Error: espota not found!");
+        return;
+      }
+    } else {
+      String esptoolCmd = platform.getTool("esptool").get("cmd");
+      esptool = new File(platform.getFolder()+"/tools", esptoolCmd);
+      if(!esptool.exists() || !esptool.isFile()){
+        esptool = new File(platform.getFolder()+"/tools/esptool", esptoolCmd);
+        if(!esptool.exists()){
+          esptool = new File(PreferencesData.get("runtime.tools.esptool.path"), esptoolCmd);
+          if (!esptool.exists()) {
+              System.err.println();
+              editor.statusError("SPIFFS Error: esptool not found!");
+              return;
+          }
+        }
+      }
+    }
+    
+    //load a list of all files
     int fileCount = 0;
     File dataFolder = new File(editor.getSketch().getFolder(), "data");
     if (!dataFolder.exists()) {
@@ -213,20 +244,20 @@ public class ESP8266FS implements Tool {
       File[] files = dataFolder.listFiles();
       if(files.length > 0){
         for(File file : files){
-          if(!file.isDirectory() && file.isFile() && !file.getName().startsWith(".")) fileCount++;
+          if((file.isDirectory() || file.isFile()) && !file.getName().startsWith(".")) fileCount++;
         }
       }
     }
 
     String dataPath = dataFolder.getAbsolutePath();
     String toolPath = tool.getAbsolutePath();
-    String esptoolPath = esptool.getAbsolutePath();
     String sketchName = editor.getSketch().getName();
     String imagePath = getBuildFolderPath(editor.getSketch()) + "/" + sketchName + ".spiffs.bin";
-    String serialPort = PreferencesData.get("serial.port");
     String resetMethod = BaseNoGui.getBoardPreferences().get("upload.resetmethod");
     String uploadSpeed = BaseNoGui.getBoardPreferences().get("upload.speed");
     String uploadAddress = BaseNoGui.getBoardPreferences().get("build.spiffs_start");
+
+    
 
     Object[] options = { "Yes", "No" };
     String title = "SPIFFS Create";
@@ -258,13 +289,25 @@ public class ESP8266FS implements Tool {
 
     editor.statusNotice("SPIFFS Uploading Image...");
     System.out.println("[SPIFFS] upload : "+imagePath);
-    System.out.println("[SPIFFS] reset  : "+resetMethod);
-    System.out.println("[SPIFFS] port   : "+serialPort);
-    System.out.println("[SPIFFS] speed  : "+uploadSpeed);
-    System.out.println("[SPIFFS] address: "+uploadAddress);
-    System.out.println();
-
-    sysExec(new String[]{esptoolPath, "-cd", resetMethod, "-cb", uploadSpeed, "-cp", serialPort, "-ca", uploadAddress, "-cf", imagePath});
+    
+    if(isNetwork){
+      String pythonCmd;
+      if(PreferencesData.get("runtime.os").contentEquals("windows"))
+          pythonCmd = "python.exe";
+      else
+          pythonCmd = "python";
+      
+      System.out.println("[SPIFFS] IP     : "+serialPort);
+      System.out.println();
+      sysExec(new String[]{pythonCmd, espota.getAbsolutePath(), "-i", serialPort, "-s", "-f", imagePath});
+    } else {
+      System.out.println("[SPIFFS] address: "+uploadAddress);
+      System.out.println("[SPIFFS] reset  : "+resetMethod);
+      System.out.println("[SPIFFS] port   : "+serialPort);
+      System.out.println("[SPIFFS] speed  : "+uploadSpeed);
+      System.out.println();
+      sysExec(new String[]{esptool.getAbsolutePath(), "-cd", resetMethod, "-cb", uploadSpeed, "-cp", serialPort, "-ca", uploadAddress, "-cf", imagePath});
+    }
   }
 
   public void run() {
