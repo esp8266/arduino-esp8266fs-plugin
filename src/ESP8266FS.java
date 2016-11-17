@@ -112,35 +112,44 @@ public class ESP8266FS implements Tool {
   }
 
   private String getBuildFolderPath(Sketch s) {
+    // first of all try the getBuildPath() function introduced with IDE 1.6.12
+    // see commit arduino/Arduino#fd1541eb47d589f9b9ea7e558018a8cf49bb6d03
     try {
-      File buildFolder = FileUtils.createTempFolder("build", DigestUtils.md5Hex(s.getMainFilePath()) + ".spiffs");
-      DeleteFilesOnShutdown.add(buildFolder);
-      return buildFolder.getAbsolutePath();
+      String buildpath = s.getBuildPath().getAbsolutePath();
+      return buildpath;
     }
-    catch (IOException e) {
-      editor.statusError(e);
+    catch (IOException er) {
+       editor.statusError(er);
     }
-    catch (NoSuchMethodError e) {
-      // Arduino 1.6.5 doesn't have FileUtils.createTempFolder
-      // String buildPath = BaseNoGui.getBuildFolder().getAbsolutePath();
-      java.lang.reflect.Method method;
+    catch (Exception er) {
       try {
-        method = BaseNoGui.class.getMethod("getBuildFolder");
-        File f = (File) method.invoke(null);
-        return f.getAbsolutePath();
-      } catch (SecurityException ex) {
-        editor.statusError(ex);
-      } catch (IllegalAccessException ex) {
-        editor.statusError(ex);
-      } catch (InvocationTargetException ex) {
-        editor.statusError(ex);
-      } catch (NoSuchMethodException ex) {
-        editor.statusError(ex);
+        File buildFolder = FileUtils.createTempFolder("build", DigestUtils.md5Hex(s.getMainFilePath()) + ".tmp");
+        return buildFolder.getAbsolutePath();
+      }
+      catch (IOException e) {
+        editor.statusError(e);
+      }
+      catch (Exception e) {
+        // Arduino 1.6.5 doesn't have FileUtils.createTempFolder
+        // String buildPath = BaseNoGui.getBuildFolder().getAbsolutePath();
+        java.lang.reflect.Method method;
+        try {
+          method = BaseNoGui.class.getMethod("getBuildFolder");
+          File f = (File) method.invoke(null);
+          return f.getAbsolutePath();
+        } catch (SecurityException ex) {
+          editor.statusError(ex);
+        } catch (IllegalAccessException ex) {
+          editor.statusError(ex);
+        } catch (InvocationTargetException ex) {
+          editor.statusError(ex);
+        } catch (NoSuchMethodException ex) {
+          editor.statusError(ex);
+        }
       }
     }
     return "";
   }
-
 
   private long getIntPref(String name){
     String data = BaseNoGui.getBoardPreferences().get(name);
@@ -150,7 +159,7 @@ public class ESP8266FS implements Tool {
   }
 
   private void createAndUpload(){
-    if(!PreferencesData.get("target_platform").contentEquals("esp8266") && !PreferencesData.get("target_platform").contentEquals("esp31b") && !PreferencesData.get("target_platform").contentEquals("ESP31B")){
+    if(!PreferencesData.get("target_platform").contentEquals("esp8266")){
       System.err.println();
       editor.statusError("SPIFFS Not Supported on "+PreferencesData.get("target_platform"));
       return;
