@@ -40,7 +40,6 @@ import processing.app.Base;
 import processing.app.BaseNoGui;
 import processing.app.Platform;
 import processing.app.Sketch;
-import processing.app.SketchData;
 import processing.app.tools.Tool;
 import processing.app.helpers.ProcessUtils;
 import processing.app.debug.TargetPlatform;
