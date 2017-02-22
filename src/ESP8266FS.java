@@ -263,7 +263,6 @@ public class ESP8266FS implements Tool {
     String dataPath = dataFolder.getAbsolutePath();
     String toolPath = tool.getAbsolutePath();
     String sketchName = editor.getSketch().getName();
-    String sketchFldr = editor.getSketch().getFolder();
     String imagePath = getBuildFolderPath(editor.getSketch()) + "\\" + sketchName + ".spiffs.bin";
     String resetMethod = BaseNoGui.getBoardPreferences().get("upload.resetmethod");
     String uploadSpeed = BaseNoGui.getBoardPreferences().get("upload.speed");
@@ -304,7 +303,7 @@ public class ESP8266FS implements Tool {
 
     if(JOptionPane.showOptionDialog(editor, message, title, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]) == JOptionPane.YES_OPTION){
       File source = new File(imagePath);
-      File dest = new File(sketchFldr + "\\" + sketchName + ".spiffs.bin");
+      File dest = new File(editor.getSketch().getFolder(),"\\" + sketchName + ".spiffs.bin");
       try {
          Files.copy(source.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
          System.out.println("Copied SPIFFS image");
