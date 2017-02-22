@@ -302,7 +302,7 @@ public class ESP8266FS implements Tool {
     title = "SPIFFS Copy";
     message = "Would you like a copy of the SPIFFS image in your project folder?";
 
-    if(JOptionPane.showOptionDialog(editor, message, title, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]) == JOptionPane.YES_OPTION){
+    if(JOptionPane.showOptionDialog(editor, message, title, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]) == JOptionPane.YES_OPTION){
       File source = new File(imagePath);
       File dest = new File(sketchFldr + "\\" + sketchName + ".spiffs.bin");
       try {
