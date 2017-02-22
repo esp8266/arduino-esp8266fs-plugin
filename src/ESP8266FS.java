@@ -28,6 +28,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.lang.reflect.Field;
@@ -260,7 +263,8 @@ public class ESP8266FS implements Tool {
     String dataPath = dataFolder.getAbsolutePath();
     String toolPath = tool.getAbsolutePath();
     String sketchName = editor.getSketch().getName();
-    String imagePath = getBuildFolderPath(editor.getSketch()) + "/" + sketchName + ".spiffs.bin";
+    String sketchFldr = editor.getSketch().getFolder();
+    String imagePath = getBuildFolderPath(editor.getSketch()) + "\\" + sketchName + ".spiffs.bin";
     String resetMethod = BaseNoGui.getBoardPreferences().get("upload.resetmethod");
     String uploadSpeed = BaseNoGui.getBoardPreferences().get("upload.speed");
     String uploadAddress = BaseNoGui.getBoardPreferences().get("build.spiffs_start");
@@ -293,6 +297,21 @@ public class ESP8266FS implements Tool {
       editor.statusError(e);
       editor.statusError("SPIFFS Create Failed!");
       return;
+    }
+    
+    title = "SPIFFS Copy";
+    message = "Would you like a copy of the SPIFFS image in your project folder?";
+
+    if(JOptionPane.showOptionDialog(editor, message, title, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]) == JOptionPane.YES_OPTION){
+      File source = new File(imagePath);
+      File dest = new File(sketchFldr + "\\" + sketchName + ".spiffs.bin");
+      try {
+         Files.copy(source.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+         System.out.println("Copied SPIFFS image");
+      } catch (IOException e) {
+        System.out.println(e);
+        editor.statusError("Copy SPIFFS image failed");
+      }
     }
 
     editor.statusNotice("SPIFFS Uploading Image...");
