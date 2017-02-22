@@ -263,7 +263,7 @@ public class ESP8266FS implements Tool {
     String dataPath = dataFolder.getAbsolutePath();
     String toolPath = tool.getAbsolutePath();
     String sketchName = editor.getSketch().getName();
-    String sketchFldr = editor.getSketch().getFolder();
+    String sketchFldr = getBuildFolderPath(editor.getSketch().getFolder());
     String imagePath = getBuildFolderPath(editor.getSketch()) + "\\" + sketchName + ".spiffs.bin";
     String resetMethod = BaseNoGui.getBoardPreferences().get("upload.resetmethod");
     String uploadSpeed = BaseNoGui.getBoardPreferences().get("upload.speed");
