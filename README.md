@@ -15,7 +15,7 @@ Tested with the following Arduino IDE versions: 1.6.5-r2,
 - Unpack the tool into tools directory (the path will look like `<home_dir>/Arduino/tools/ESP8266FS/tool/esp8266fs.jar)`.
 - Restart Arduino IDE. 
 
-On the OS X create the tools directory in ~/Documents/Arduino/ and unpack the files there
+On OS X and Linux based OSs create the tools directory in ~/Documents/Arduino/ and unpack the files there
 
 ## Usage
 - Open a sketch (or create a new one and save it).
