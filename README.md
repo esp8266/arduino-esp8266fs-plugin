@@ -11,11 +11,9 @@ Tested with the following Arduino IDE versions: 1.6.5-r2,
 ## Installation
 - Make sure you use one of the supported versions of Arduino IDE and have ESP8266 core installed.
 - Download the tool archive from [releases page](https://github.com/esp8266/arduino-esp8266fs-plugin/releases/latest).
-- In your Arduino sketchbook directory, create tools directory if it doesn't exist yet.
-- Unpack the tool into tools directory (the path will look like `<home_dir>/Arduino/tools/ESP8266FS/tool/esp8266fs.jar)`.
+- In your Arduino sketchbook directory, create `tools` directory if it doesn't exist yet. You can find the location of your sketchbook directory in the Arduino IDE at **File > Preferences > Sketchbook location**.
+- Unpack the tool into `tools` directory (the path will look like `<sketchbook directory>/tools/ESP8266FS/tool/esp8266fs.jar)`.
 - Restart Arduino IDE. 
-
-On the OS X create the tools directory in ~/Documents/Arduino/ and unpack the files there
 
 ## Usage
 - Open a sketch (or create a new one and save it).
