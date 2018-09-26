@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 
 if [[ -z "$INSTALLDIR" ]]; then
-    INSTALLDIR="$HOME/Documents/Arduino"
+    if [[ -z "$TAG" ]]; then
+        TAG=1.6.12
+    fi
+    INSTALLDIR="$HOME/Arduino-$TAG/build/linux/work"
+fi
+if [[ -L "$INSTALLDIR" ]]; then
+    INSTALLDIR=$INSTALLDIR/
 fi
 echo "INSTALLDIR: $INSTALLDIR"
 
-pde_path=`find ../../../ -name pde.jar`
-core_path=`find ../../../ -name arduino-core.jar`
-lib_path=`find ../../../ -name commons-codec-1.7.jar`
+pde_path=`find ${INSTALLDIR} -name pde.jar`
+core_path=`find ${INSTALLDIR} -name arduino-core.jar`
+lib_path=`find ${INSTALLDIR} -name commons-codec-1.7.jar`
 if [[ -z "$core_path" || -z "$pde_path" ]]; then
     echo "Some java libraries have not been built yet (did you run ant build?)"
-    return 1
+    exit 1
 fi
 echo "pde_path: $pde_path"
 echo "core_path: $core_path"

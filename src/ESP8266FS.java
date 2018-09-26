@@ -284,7 +284,9 @@ public class ESP8266FS implements Tool {
     System.out.println("[SPIFFS] block  : "+spiBlock);
 
     try {
-      if(listenOnProcess(new String[]{toolPath, "-c", dataPath, "-p", spiPage+"", "-b", spiBlock+"", "-s", (spiEnd - spiStart)+"", imagePath}) != 0){
+      String[] buildCmd = new String[]{toolPath, "-c", dataPath, "-p", spiPage+"", "-b", spiBlock+"", "-s", (spiEnd - spiStart)+"", imagePath};
+      dumpCommand(buildCmd, "build.verbose");
+      if(listenOnProcess(buildCmd) != 0){
         System.err.println();
         editor.statusError("SPIFFS Create Failed!");
         return;
@@ -298,6 +300,7 @@ public class ESP8266FS implements Tool {
     editor.statusNotice("SPIFFS Uploading Image...");
     System.out.println("[SPIFFS] upload : "+imagePath);
     
+    String[] uploadCmd;
     if(isNetwork){
       String pythonCmd;
       if(PreferencesData.get("runtime.os").contentEquals("windows"))
@@ -307,18 +310,35 @@ public class ESP8266FS implements Tool {
       
       System.out.println("[SPIFFS] IP     : "+serialPort);
       System.out.println();
-      sysExec(new String[]{pythonCmd, espota.getAbsolutePath(), "-i", serialPort, "-s", "-f", imagePath});
+      uploadCmd = new String[]{pythonCmd, espota.getAbsolutePath(), "-i", serialPort, "-s", "-f", imagePath};
     } else {
       System.out.println("[SPIFFS] address: "+uploadAddress);
       System.out.println("[SPIFFS] reset  : "+resetMethod);
       System.out.println("[SPIFFS] port   : "+serialPort);
       System.out.println("[SPIFFS] speed  : "+uploadSpeed);
       System.out.println();
-      sysExec(new String[]{esptool.getAbsolutePath(), "-cd", resetMethod, "-cb", uploadSpeed, "-cp", serialPort, "-ca", uploadAddress, "-cf", imagePath});
+      uploadCmd = new String[]{esptool.getAbsolutePath(), "-cd", resetMethod, "-cb", uploadSpeed, "-cp", serialPort, "-ca", uploadAddress, "-cf", imagePath};
     }
+    dumpCommand(uploadCmd, "upload.verbose");
+    sysExec(uploadCmd);
   }
 
   public void run() {
     createAndUpload();
+  }
+
+  private void dumpCommand(String[] fragments, String preference) {
+    if (!PreferencesData.getBoolean(preference)) {
+      return;
+    }
+
+    StringBuffer commandBuf = new StringBuffer(128);
+    for (int cnt = 0; cnt < fragments.length; cnt++) {
+      commandBuf.append(fragments[cnt]);
+      if (cnt < fragments.length - 1) {
+        commandBuf.append(" ");
+      }
+    }
+    System.out.println(commandBuf.toString());
   }
 }
