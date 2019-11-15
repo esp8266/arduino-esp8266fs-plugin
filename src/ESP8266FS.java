@@ -219,7 +219,7 @@ public class ESP8266FS implements Tool {
     }
 
     // Find upload.py, don't fail if not present for backwards compat
-    File uploadPyFile = new File(platform.getFolder()+"/tools", "upload.py");
+    File uploadPyFile = new File(platform.getFolder()+"/tools/esptool", "esptool.py");
     if (uploadPyFile.exists() && uploadPyFile.isFile()) {
       uploadCmd = uploadPyFile.getAbsolutePath();
     }
@@ -331,7 +331,7 @@ public class ESP8266FS implements Tool {
       }
       System.out.println();
       if (!uploadCmd.isEmpty()) {
-        sysExec(new String[]{pythonCmd, uploadCmd, "--chip", "esp8266", "--port", serialPort, "--baud", uploadSpeed, "write_flash", uploadAddress, imagePath, "--end"});
+        sysExec(new String[]{pythonCmd, uploadCmd, "--chip", "esp8266", "--port", serialPort, "--baud", "460800", "write_flash", uploadAddress, imagePath});
       } else {
         sysExec(new String[]{esptool.getAbsolutePath(), "-cd", resetMethod, "-cb", uploadSpeed, "-cp", serialPort, "-ca", uploadAddress, "-cf", imagePath});
       }
