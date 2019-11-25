@@ -208,6 +208,8 @@ public class ESP8266FS implements Tool {
     File espota = new File(platform.getFolder()+"/tools");
     File esptool = new File(platform.getFolder()+"/tools");
     String serialPort = PreferencesData.get("serial.port");
+    String pythonCmd = PreferencesData.get("runtime.os").contentEquals("windows") ? "python3.exe" : "python3";
+    String uploadCmd = "";
     
     //make sure the serial port or IP is defined
     if (serialPort == null || serialPort.isEmpty()) {
@@ -215,6 +217,22 @@ public class ESP8266FS implements Tool {
       editor.statusError("SPIFFS Error: serial port not defined!");
       return;
     }
+
+    // Find upload.py, don't fail if not present for backwards compat
+    File uploadPyFile = new File(platform.getFolder()+"/tools", "upload.py");
+    if (uploadPyFile.exists() && uploadPyFile.isFile()) {
+      uploadCmd = uploadPyFile.getAbsolutePath();
+    }
+    // Find python.exe if present, don't fail if not found for backwards compat
+    String[] paths = { platform.getFolder()+"/tools", platform.getFolder()+"/tools/python3", PreferencesData.get("runtime.tools.python3.path") };
+    for (String s: paths) {
+      File toolPyFile = new File(s, pythonCmd);
+      if (toolPyFile.exists() && toolPyFile.isFile() && toolPyFile.canExecute()) {
+        pythonCmd = toolPyFile.getAbsolutePath();
+        break;
+      }
+    }
+    // pythonCmd now points to either an installed exe with full path or just plain "python3(.exe)"
 
     //find espota if IP else find esptool
     if(serialPort.split("\\.").length == 4){
@@ -233,7 +251,7 @@ public class ESP8266FS implements Tool {
         esptool = new File(platform.getFolder()+"/tools/esptool", esptoolCmd);
         if(!esptool.exists()){
           esptool = new File(PreferencesData.get("runtime.tools.esptool.path"), esptoolCmd);
-          if (!esptool.exists()) {
+          if (!esptool.exists() && uploadCmd.isEmpty()) {
               System.err.println();
               editor.statusError("SPIFFS Error: esptool not found!");
               return;
@@ -278,10 +296,10 @@ public class ESP8266FS implements Tool {
     }
 
     editor.statusNotice("SPIFFS Creating Image...");
-    System.out.println("[SPIFFS] data   : "+dataPath);
-    System.out.println("[SPIFFS] size   : "+((spiEnd - spiStart)/1024));
-    System.out.println("[SPIFFS] page   : "+spiPage);
-    System.out.println("[SPIFFS] block  : "+spiBlock);
+    System.out.println("[SPIFFS] data    : "+dataPath);
+    System.out.println("[SPIFFS] size    : "+((spiEnd - spiStart)/1024));
+    System.out.println("[SPIFFS] page    : "+spiPage);
+    System.out.println("[SPIFFS] block   : "+spiBlock);
 
     try {
       if(listenOnProcess(new String[]{toolPath, "-c", dataPath, "-p", spiPage+"", "-b", spiBlock+"", "-s", (spiEnd - spiStart)+"", imagePath}) != 0){
@@ -296,25 +314,27 @@ public class ESP8266FS implements Tool {
     }
 
     editor.statusNotice("SPIFFS Uploading Image...");
-    System.out.println("[SPIFFS] upload : "+imagePath);
+    System.out.println("[SPIFFS] upload  : "+imagePath);
     
     if(isNetwork){
-      String pythonCmd;
-      if(PreferencesData.get("runtime.os").contentEquals("windows"))
-          pythonCmd = "python.exe";
-      else
-          pythonCmd = "python";
-      
-      System.out.println("[SPIFFS] IP     : "+serialPort);
+      System.out.println("[SPIFFS] IP       : "+serialPort);
       System.out.println();
       sysExec(new String[]{pythonCmd, espota.getAbsolutePath(), "-i", serialPort, "-s", "-f", imagePath});
     } else {
-      System.out.println("[SPIFFS] address: "+uploadAddress);
-      System.out.println("[SPIFFS] reset  : "+resetMethod);
-      System.out.println("[SPIFFS] port   : "+serialPort);
-      System.out.println("[SPIFFS] speed  : "+uploadSpeed);
+      System.out.println("[SPIFFS] address  : "+uploadAddress);
+      System.out.println("[SPIFFS] reset    : "+resetMethod);
+      System.out.println("[SPIFFS] port     : "+serialPort);
+      System.out.println("[SPIFFS] speed    : "+uploadSpeed);
+      if (!uploadCmd.isEmpty()) {
+        System.out.println("[SPIFFS] python   : "+pythonCmd);
+        System.out.println("[SPIFFS] uploader : "+uploadCmd);
+      }
       System.out.println();
-      sysExec(new String[]{esptool.getAbsolutePath(), "-cd", resetMethod, "-cb", uploadSpeed, "-cp", serialPort, "-ca", uploadAddress, "-cf", imagePath});
+      if (!uploadCmd.isEmpty()) {
+        sysExec(new String[]{pythonCmd, uploadCmd, "--chip", "esp8266", "--port", serialPort, "--baud", uploadSpeed, "write_flash", uploadAddress, imagePath});
+      } else {
+        sysExec(new String[]{esptool.getAbsolutePath(), "-cd", resetMethod, "-cb", uploadSpeed, "-cp", serialPort, "-ca", uploadAddress, "-cf", imagePath});
+      }
     }
   }
 
