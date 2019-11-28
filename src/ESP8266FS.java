@@ -34,12 +34,14 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import javax.swing.JOptionPane;
 
+
 import processing.app.PreferencesData;
 import processing.app.Editor;
 import processing.app.Base;
 import processing.app.BaseNoGui;
 import processing.app.Platform;
 import processing.app.Sketch;
+import processing.app.forms.PasswordAuthorizationDialog;
 import processing.app.tools.Tool;
 import processing.app.helpers.ProcessUtils;
 import processing.app.debug.TargetPlatform;
@@ -319,7 +321,23 @@ public class ESP8266FS implements Tool {
     if(isNetwork){
       System.out.println("[SPIFFS] IP       : "+serialPort);
       System.out.println();
-      sysExec(new String[]{pythonCmd, espota.getAbsolutePath(), "-i", serialPort, "-s", "-f", imagePath});
+
+      PasswordAuthorizationDialog dialog = new PasswordAuthorizationDialog(
+             editor, "Type board password to upload new data");
+      dialog.setLocationRelativeTo(editor);
+      dialog.setVisible(true);
+      if (dialog.isCancelled()) {
+        editor.statusNotice("Upload cancelled");
+        return;
+      }
+      String pass = dialog.getPassword();
+      if (pass.isEmpty()) {
+        sysExec(new String[]{pythonCmd, espota.getAbsolutePath(),
+            "-i", serialPort, "-s", "-f", imagePath});
+      } else {
+        sysExec(new String[]{pythonCmd, espota.getAbsolutePath(),
+                             "-i", serialPort, "-a", pass, "-s", "-f", imagePath});
+      }
     } else {
       System.out.println("[SPIFFS] address  : "+uploadAddress);
       System.out.println("[SPIFFS] reset    : "+resetMethod);
